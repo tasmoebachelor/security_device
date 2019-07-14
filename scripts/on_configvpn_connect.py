@@ -1,27 +1,27 @@
 #!/usr/bin/python
 
+#
+# Dieses Script wird bei jedem erfolgreichen Aufbau einer Verbindung durch den OpenVPN
+# Daemon gestartet. Es dient im Grunde genommen nur dazu, ein Ansible-Playbook zu starten.
+#  
+
 import syslog
 import os
 import subprocess 
 import shlex
 import re
 
-syslog.syslog('Processing started')
-for param in os.environ.keys():
-    syslog.syslog(param)
-    syslog.syslog(os.environ[param])
-
+# OpenVPN gibt eine reihe von Environmentvariabeln mit. Davon sind interessant:
+# Die IP-Addresse des sich verbindenen Client-Devices im Config-VPN. Dies wird für 
+# für die Ansible-Verbindung zum Client-Device benutzt. 
 remote_ip = os.environ["ifconfig_pool_remote_ip"]
+# Der Common-Name im für die erfolgreiche Verbinung genutzten Zertifikat
 common_name = os.environ["common_name"]
+# Wo man schon mal im Python ist, kann man auch gleich die Client-ID rausschneiden.
 client_id =  re.search("clnt(.*)dev",common_name).group(1)
 
-
-syslog.syslog("user id:" + str(os.getuid()) )
-syslog.syslog("Remote IP:" + remote_ip )
-syslog.syslog("Common Name : " + common_name )
-syslog.syslog("ClientID : " + client_id )
-
+# Das Ansible-Script muss hier sudo nutzen, da der OpenVPN-Server fürs Config-VPN unter 
+# dem User openvpn läuft, das Ansible-Playbook braucht aber root.
 cmd="sudo -b ansible-playbook -i centctrl," + remote_ip +" /usr/local/securitydevice/ansible/playbook_onconfigvpnconnect.yaml --extra-vars=\"remote_ip="+remote_ip+" common_name="+ common_name +" client_id="+ client_id+"\" " 
-syslog.syslog("cmd :" + cmd)
 args = shlex.split(cmd)
 subprocess.call(args)
