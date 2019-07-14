@@ -1,0 +1,8 @@
+[ca]
+centca
+
+[server]
+centdev
+
+[management]
+centctrl
