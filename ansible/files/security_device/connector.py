@@ -7,13 +7,15 @@ import shlex
 import time
 from pathlib import Path
 
-# Cleanup: Alle OpenVPN Prozesse terminieren 
+# Am Anfang des Scripts werden alle OpenVPN-Prozesse terminiert
+# Damit werden sämtliche VPN-Tunnel und Tunnel-Interfaces entfernt. 
 os.system("killall openvpn")
 
-# Cleanup: Das Semaphore-File wegraeumen, wenn es aelter ist als 24h 
-
-os.remove('/usr/local/vpnconnector/ansible.semaphore') 
-print("remove stale ansible semaphore")
+# Zunächst wird ein verbliebenes Semaphore-File entfernt.
+#
+ansible_semaphore = Path("/usr/local/vpnconnector/ansible.semaphore")
+if ansible_semaphore.is_file():
+	os.remove('/usr/local/vpnconnector/ansible.semaphore') 
 
 # Username, Hostname und Password aus dem Environment des Prozesses uebernehmen. Dadurch stehen diese Daten nicht in der Prozesstabelle.
 
@@ -28,7 +30,7 @@ try:
     t = paramiko.Transport((hostname, port))
     t.connect(username=username, password=password)
     sftp = paramiko.SFTPClient.from_transport(t)
-    sftp.get('/home/cda2/configvpn.ovpn','/usr/local/vpnconnector/configfiles/configvpn.ovpn')
+    sftp.get('/home/'+username+'/configvpn.ovpn','/usr/local/vpnconnector/configfiles/configvpn.ovpn')
 finally:
     t.close()
 
@@ -50,11 +52,20 @@ while not tun0_available == True:
 	print("tun0 check")
 	time.sleep(1)	
 
-ansible_semaphore = Path("/usr/local/vpnconnector/ansible.semaphore")
+# Eine erfolgreiche Verbindung an das ConfigVPN startet ein Ansible-Playbook
+# an dessem Ende ein Semaphorefile angelegt wird. Dies passiert nur, wenn 
+# vorher alle anderen Schritte erfolgreich waren. Durch die Existenz des 
+# Semaphores wissen wir, das alle Komponenten auf einen Start des Daten-VPN
+# vorbereitet sind. Das Script wartet endlos auf das Erscheinen des Semaphore. 
 
+ansible_semaphore = Path("/usr/local/vpnconnector/ansible.semaphore")
 while not ansible_semaphore.is_file():
     print("check semaphore")
     time.sleep(1)
+
+# Das DatenVPN wird mit dem von Ansible auf den Host, auf dem auch dieses
+# Script gestartet worden ist, geschobenen unified configuration file 
+# für das DatenVPN gestartet.
 
 command_data_openvpn = "openvpn --daemon  --config /usr/local/vpnconnector/configfiles/datavpn.ovpn"
 splitted_command_data_openvpn = shlex.split(command_data_openvpn)
