@@ -1,0 +1,150 @@
+---
+- hosts: all 
+  gather_facts: yes
+  become_user: root
+
+  vars_prompt:
+  - name: prompt_client_id
+    prompt: "Geben sie die Client ID ein"
+    private: no
+  - name: prompt_cda_password
+    prompt: "What is your password?"
+    private: no
+  tasks:
+    - set_fact:
+        client_id: "{{ prompt_client_id}}"
+    - set_fact:
+        cda_password: "{{ prompt_cda_password}}"
+
+- hosts: centca
+  gather_facts: yes
+  become_user: root
+  vars_prompt: 
+  - name: password_for_ca
+    prompt: "What is your CA password?"
+    private: no
+  tasks:
+  - name: Create password file for CA 
+    template: 
+      src: /usr/local/securitydevice/ansible/template/capassfile
+      dest: /root/EasyRSA-v3.0.6/pki/capassfile
+    tags:
+    - CreateKeysandCerts
+  - name: create keying material for client
+    command: ./easyrsa build-client-full clnt{{client_id}}dev nopass
+    args:
+      chdir: /root/EasyRSA-v3.0.6
+    tags:
+    - CreateKeysandCerts 
+  - name: clean up the password file
+    file:
+      path: /usr/local/securitydevice/ansible/template/capassfile
+      state: absent
+    tags:
+    - CreateKeysandCerts
+  - name: fetch key file for client
+    fetch:
+     src: /root/EasyRSA-v3.0.6/pki/private/clnt{{ client_id}}dev.key
+     dest: /usr/local/securitydevice/keys
+     flat: yes
+    tags:
+    - CreateKeysandCerts
+  - name: fetch cert file for client
+    fetch:
+     src: /root/EasyRSA-v3.0.6/pki/issued/clnt{{ client_id}}dev.crt
+     dest: /usr/local/securitydevice/keys 
+     flat: yes
+    tags:
+    - CreateKeysandCerts
+
+- hosts: management 
+  gather_facts: yes
+  become_user: root
+
+  tasks:
+  - name: Create Client Authenticator account
+    user:
+      name: "cda{{ client_id }}"
+      createhome: True
+      home: "/home/cda{{ client_id }}"
+      password: "{{ cda_password | password_hash('sha512') }}"
+      generate_ssh_key: yes
+      ssh_key_bits: 2048
+      ssh_key_file: .ssh/id_rsa
+  - name: Ensure existence of client configuration directory 
+    file:
+      path: /etc/openvpn/ccd
+      state: directory
+      mode: '0755' 
+  - name: Create a directory for assembly of unified config file  
+    file:
+      path: /home/cda{{ client_id }}/keys 
+      state: directory
+      mode: '0755'
+  - name : Create CCD file for configvpn
+    template:
+      src: /usr/local/securitydevice/ansible/template/ccd_config.j2
+      dest: /etc/openvpn/ccd/clnt{{ client_id }}dev 
+  - name : Create client configfile configvpn
+    template:
+      src: /usr/local/securitydevice/ansible/template/configvpn.ovpn.j2
+      dest: /home/cda{{ client_id }}/configvpn.ovpn
+  - name : Create client configfile configvpn
+    template:
+      src: /usr/local/securitydevice/ansible/template/datavpn.ovpn.j2
+      dest: /home/cda{{ client_id }}/datavpn.ovpn
+  - name: "Create unified config  client ovpn file"
+    become: yes
+    shell: "{{ item }}"
+    with_items:
+      - echo -e '<ca>' >> /home/cda{{ client_id }}/configvpn.ovpn
+      - cat  /etc/openvpn/ca.crt >> /home/cda{{ client_id }}/configvpn.ovpn
+      - echo -e '</ca>\n<cert>' >> /home/cda{{ client_id }}/configvpn.ovpn
+      - cat  /usr/local/securitydevice/keys/clnt{{client_id}}dev.crt >> /home/cda{{ client_id }}/configvpn.ovpn
+      - echo -e '</cert>\n<key>' >> /home/cda{{ client_id }}/configvpn.ovpn
+      - cat  /usr/local/securitydevice/keys/clnt{{client_id}}dev.key >> /home/cda{{ client_id }}/configvpn.ovpn
+      - echo -e '</key>\n<tls-auth>' >> /home/cda{{ client_id }}/configvpn.ovpn
+      - cat  /etc/openvpn/ta.key >> /home/cda{{ client_id }}/configvpn.ovpn
+      - echo -e '</tls-auth>' >> /home/cda{{ client_id }}/configvpn.ovpn
+      - echo -e 'key-direction 1' >> /home/cda{{ client_id }}/configvpn.ovpn
+    args:
+      chdir: "/home/cda{{ client_id }}/"
+      executable: /bin/bash
+  - name: "Create unified data client ovpn file"
+    become: yes
+    shell: "{{ item }}"
+    with_items:
+      - echo -e '<ca>' >> /home/cda{{ client_id }}/datavpn.ovpn
+      - cat  /etc/openvpn/ca.crt >> /home/cda{{ client_id }}/datavpn.ovpn
+      - echo -e '</ca>\n<cert>' >> /home/cda{{ client_id }}/datavpn.ovpn
+      - cat  /usr/local/securitydevice/keys/clnt{{client_id}}dev.crt >> /home/cda{{ client_id }}/datavpn.ovpn
+      - echo -e '</cert>\n<key>' >> /home/cda{{ client_id }}/datavpn.ovpn
+      - cat  /usr/local/securitydevice/keys/clnt{{client_id}}dev.key >> /home/cda{{ client_id }}/datavpn.ovpn
+      - echo -e '</key>\n<tls-auth>' >> /home/cda{{ client_id }}/datavpn.ovpn
+      - cat  /etc/openvpn/ta.key >> /home/cda{{ client_id }}/datavpn.ovpn
+      - echo -e '</tls-auth>' >> /home/cda{{ client_id }}/datavpn.ovpn
+      - echo -e 'key-direction 1' >> /home/cda{{ client_id }}/datavpn.ovpn
+    args:
+      chdir: "/home/cda{{ client_id }}/"
+      executable: /bin/bash
+
+
+- hosts: server
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Create a directory if it does not exist
+    file:
+      path: /etc/openvpn/ccd
+      state: directory
+      mode: '0755'
+  - name : Create CCD file for datavpn
+    template:
+      src: /usr/local/securitydevice/ansible/template/ccd_data.j2
+      dest: /etc/openvpn/ccd/clnt{{ client_id }}dev
+  - name : Add routing entry in main openvpn configuration
+    lineinfile:
+      dest: /etc/openvpn/server.conf
+      line: "route 10.9.{{ client_id }}.0 255.255.255.0 10.7.{{ client_id }}.2"
+      state: present
+

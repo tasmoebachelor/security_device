@@ -1,0 +1,150 @@
+
+---
+- hosts: all 
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Include common config
+    include_vars:
+     file: common_config.yaml
+  - name: Update apt packages
+    become: true
+    apt:
+      upgrade: yes
+  - name: Modify Suricata service file /lib/systemd/system/suricata.service for nfqueue 
+    lineinfile:
+      dest: /lib/systemd/system/suricata.service 
+      regexp: 'ExecStart=/usr/bin/suricata.*$'
+      line: "ExecStart=/usr/bin/suricata -c /etc/suricata/suricata.yaml -D -q 0"
+      state: present
+  - name: Reload systemd after changing service file 
+    shell: "systemctl daemon-reload" 
+    args:
+      chdir: "/"
+      executable: /bin/bash
+  - name: modify oinkmaster.conf
+    lineinfile:
+      dest: /etc/oinkmaster.conf  
+      line: "url = https://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz"
+      state: present
+  - name: modifysid from alert to drop  
+    lineinfile:
+      dest: /etc/oinkmaster.conf
+      line: "modifysid botcc.portgrouped.rules, botcc.rules, ciarmy.rules, compromised.rules, drop.rules, dshield.rules, emerging-dos.rules,emerging-malware.rules, emerging-scan.rules, emerging-shellcode.rules,emerging-trojan.rules, emerging-worm.rules \"^alert\" | \"drop\""
+      state: present 
+
+- hosts: client_devices 
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: configure Automatic Private IP Addressing
+    copy:
+      src: /usr/local/securitydevice/ansible/files/system/enp0s3 
+      dest:  /etc/network/interfaces.d/enp0s3 
+  - name: Bring down interface 
+    command: "ifdown enp0s3"
+    args:
+      chdir: "/"
+    ignore_errors: yes
+  - name: Bring down interface
+    command: "ifup enp0s3"
+    args:
+      chdir: "/"
+      ignore_errors: yes
+  - name: Configuration IP forwarding
+    become: true
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+
+- hosts: client_devices,server       
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Start Suricata systemd service
+    become: true
+    systemd:
+      name: suricata 
+      state: started
+      daemon_reload: yes
+      enabled: yes
+
+- hosts: management
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Template a file to /etc/openvpn/server.conf
+    template:
+      src: /usr/local/securitydevice/ansible/template/configvpn_server.conf.template
+      dest: /etc/openvpn/server.conf
+  - name: Copy certificate of the Certificate Authority 
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/ca.crt 
+      dest: /etc/openvpn/ca.crt 
+  - name: Copy Diffie-Hellman Parameter to remote server
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/dh.pem
+      dest: /etc/openvpn/dh.pem
+  - name: Copy TA.key
+    copy: 
+      src: /usr/local/securitydevice/ansible/files/openvpn/ta.key
+      dest: /etc/openvpn/ta.key
+  - name: Copy Server Certificate to centctrl
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/centctrl.crt
+      dest: /etc/openvpn/centctrl.crt
+  - name: Copy Server Key to centctrl
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/centctrl.key
+      dest: /etc/openvpn/centctrl.key
+  - name: Start openvpn systemd service
+    become: true
+    systemd:
+      name: openvpn@server
+      state: started
+      daemon_reload: yes
+      enabled: yes
+
+
+- hosts: server
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Template a file to /etc/openvpn/server.conf
+    template:
+      src: /usr/local/securitydevice/ansible/template/datavpn_server.conf.template
+      dest: /etc/openvpn/server.conf
+  - name: Copy certificate of the Certificate Authority
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/ca.crt
+      dest: /etc/openvpn/ca.crt
+  - name: Copy Diffie-Hellman Parameter to remote server
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/dh.pem
+      dest: /etc/openvpn/dh.pem
+  - name: Copy TA.key
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/ta.key
+      dest: /etc/openvpn/ta.key
+  - name: Copy Server Certificate
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/centdev.crt
+      dest: /etc/openvpn/centdev.crt
+  - name: Copy Server Key
+    copy:
+      src: /usr/local/securitydevice/ansible/files/openvpn/centdev.key
+      dest: /etc/openvpn/centdev.key
+  - name: Configuration IP forwarding
+    become: true
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+  - name: Start openvpn systemd service
+    become: true
+    systemd:
+      name: openvpn@server
+      state: started
+      daemon_reload: yes
+      enabled: yes

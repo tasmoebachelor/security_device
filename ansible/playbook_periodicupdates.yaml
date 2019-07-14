@@ -1,0 +1,19 @@
+---
+- hosts: all 
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Update oinkmaster 
+    shell: "/usr/sbin/oinkmaster -o /etc/suricata/rules/" 
+    args:
+      chdir: "/"
+      executable: /bin/bash
+
+- hosts: server 
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Restart Suricata 
+    service:
+     name: suricata 
+     state: restarted

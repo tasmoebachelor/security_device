@@ -1,0 +1,59 @@
+---
+- hosts: centctrl 
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Add IP address to /etc/hosts 
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '.*{{ common_name }}-i$'
+      line: "{{ remote_ip }} {{ common_name }}-i.tasmin.moellenkamp.org {{ common_name }}-i"
+      state: present
+
+- hosts: "{{ remote_ip }}"
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Add IP address to /etc/hosts
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '.*{{ common_name }}-i$'
+      line: "{{ remote_ip }} {{ common_name }}-i.tasmin.moellenkamp.org {{ common_name }}-i"
+      state: present
+  - name: Copy unified datavpn.ovpn
+    copy:
+      src: /home/cda{{ client_id }}/datavpn.ovpn
+      dest: /usr/local/vpnconnector/configfiles/datavpn.ovpn
+  - name: Start default gateway ip client network 
+    template:
+      src: /usr/local/securitydevice/ansible/template/clientnetwork.j2
+      dest: /etc/network/interfaces.d/clientnetworkip
+  - name: Start default gateway ip client network
+    template:
+      src: /usr/local/securitydevice/ansible/template/dhcpd.conf.j2
+      dest: /etc/dhcp/dhcpd.conf
+  - name: Create /etc/default/isc-dhcp-server
+    template:
+      src: /usr/local/securitydevice/ansible/template/isc-dhcp-server.j2
+      dest: /etc/default/isc-dhcp-server 
+  - name: Bring down interface 
+    command: "ifdown enp0s3"
+    args:
+      chdir: "/"
+    ignore_errors: yes
+  - name: Bring down interface
+    command: "ifup enp0s3"
+    args:
+      chdir: "/"
+    ignore_errors: yes
+  - name: Start dhcp systemd service
+    become: true
+    systemd:
+      name: isc-dhcp-server 
+      state: restarted
+      daemon_reload: yes
+      enabled: yes
+  - name: Create semaphore  
+    file:
+      path: /usr/local/vpnconnector/ansible.semaphore 
+      state: touch 

@@ -1,0 +1,4 @@
+common_config:
+  subnet_configvpn_prefix: 10.8.
+  subnet_datavpn_prefix: 10.7.
+  subnet_clientnetwork_prefix: 10.9.

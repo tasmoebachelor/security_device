@@ -1,0 +1,44 @@
+---
+- hosts: all 
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Install Aptitude
+    apt: pkg=aptitude state=latest
+  - name: Install Openvpn 
+    apt: pkg=nginx state=latest
+  - name: Install Python
+    apt: pkg=python3 state=latest
+  - name: Install Python PIP
+    apt: pkg=python3-pip state=latest
+  - name: Install UFW
+    apt: pkg=ufw state=latest
+  - name: Install suricata
+    apt: pkg=suricata state=latest
+  - name: Install dhcp server
+    apt: pkg=isc-dhcp-server state=latest
+  - name: Install fail2ban
+    apt: pkg=fail2ban state=latest
+  - name: Install Paramiko SSH/SCP python library
+    pip:
+      name: paramiko
+      executable: /usr/bin/pip3
+
+
+- hosts: client_devices
+  gather_facts: yes
+  become_user: root
+  tasks:
+    - name: Copy connector script
+      copy: 
+       src: /usr/local/securitydevice/ansible/files/security_device/connector.py
+       dest: /usr/local/vpnconnector
+    - name: Install dhcp server
+      apt: pkg=isc-dhcp-server state=latest 
+
+- hosts: management 
+  gather_facts: yes
+  become_user: root
+  tasks:
+    - name: Install dhcpmasq 
+      apt: pkg=dnsmasq state=latest
