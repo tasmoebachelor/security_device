@@ -1,0 +1,23 @@
+port 443
+proto tcp
+dev tun
+ca ca.crt
+cert centdev.crt
+key centdev.key  # This file should be kept secret
+dh dh.pem
+topology subnet 
+server {{ common_config.subnet_datavpn_prefix }}0.0 255.255.0.0
+ifconfig-pool-persist ipp.txt
+keepalive 10 120
+tls-auth ta.key 0 # This file is secret
+key-direction 0
+cipher AES-256-CBC
+auth sha256
+user nobody
+group nogroup
+persist-key
+persist-tun
+status openvpn-status.log
+verb 2 
+explicit-exit-notify 0
+client-config-dir /etc/openvpn/ccd
