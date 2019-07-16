@@ -50,7 +50,7 @@
     command: "ifup enp0s3"
     args:
       chdir: "/"
-      ignore_errors: yes
+    ignore_errors: yes
   - name: Configuration IP forwarding
     become: true
     sysctl:
@@ -148,3 +148,36 @@
       state: started
       daemon_reload: yes
       enabled: yes
+
+- hosts: server,client_devices
+  gather_facts: yes
+  become_user: root
+  tasks:
+  - name: Add ufw before content
+    become: true
+    blockinfile:
+      dest: /etc/ufw/before.rules
+      insertbefore: BOF
+      block: |
+        iptables -I FORWARD -j NFQUEUE   
+        COMMIT
+  - name: Customize ufw forwarding policy
+    become: true
+    lineinfile:
+      line: "DEFAULT_FORWARD_POLICY=\"ACCEPT\""
+      dest: "/etc/default/ufw"
+      regexp: "^DEFAULT_FORWARD_POLICY=\"DROP\""
+  - name: Open ufw ports for openvpn 
+    become: true
+    shell:  ufw allow 443/tcp
+  - name: Open ufw ports for ssh
+    become: true
+    shell:  ufw allow 22/tcp 
+  - name: Open ufw ports for http 
+    become: true
+    shell:  ufw allow 80/tcp
+  - name: Enable ufw
+    become: true
+    shell: ufw --force enable
+
+
