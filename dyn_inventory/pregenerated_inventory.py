@@ -3,7 +3,7 @@
 import os
 import sys
 
-base_inventory=open("/usr/local/securitydevice/server/baseinventory.txt","r")
+base_inventory=open("/usr/local/securitydevice/dyn_inventory/baseinventory.txt","r")
 base_inventory_content = base_inventory.read()
 print(base_inventory_content)
 
