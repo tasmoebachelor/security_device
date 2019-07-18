@@ -20,6 +20,12 @@ common_name = os.environ["common_name"]
 # Wo man schon mal im Python ist, kann man auch gleich die Client-ID rausschneiden.
 client_id =  re.search("clnt(.*)dev",common_name).group(1)
 
+# Um sicherzustellen, das die innere IP-Addresse eines neuen Clients auch im Inventory steht, wird vor jedem
+# aufruf des on_connect Ansible-Playbooks ein neues Inventory generiert.
+cmd="sudo /usr/local/securitydevice/dyn_inventory/pregenerated_inventory.py > /usr/local/securitydevice/dyn_inventory/inventory"
+args = shlex.split(cmd)
+subprocess.call(args)
+
 # Das Ansible-Script muss hier sudo nutzen, da der OpenVPN-Server fuers Config-VPN unter 
 # dem User openvpn laeuft, das Ansible-Playbook braucht aber root.
 cmd="sudo -b ansible-playbook -i centctrl," + remote_ip +" /usr/local/securitydevice/ansible/playbook_onconfigvpnconnect.yaml --extra-vars=\"remote_ip="+remote_ip+" common_name="+ common_name +" client_id="+ client_id+"\" " 
