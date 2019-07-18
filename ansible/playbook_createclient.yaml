@@ -144,7 +144,7 @@
       dest: /etc/openvpn/ccd/clnt{{ client_id }}dev
   - name : Add routing entry in main openvpn configuration
     lineinfile:
-      dest: /etc/openvpn/server.conf
+      dest: /etc/openvpn/routingconfiguration
       line: "route 10.9.{{ client_id }}.0 255.255.255.0 10.7.{{ client_id }}.2"
       state: present
 
