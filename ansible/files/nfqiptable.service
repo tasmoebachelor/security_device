@@ -1,0 +1,13 @@
+[Unit]
+Description=iptables configuration for NFQ
+After=suricata.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root
+ExecStart=/usr/sbin/iptables -I FORWARD -j NFQUEUE
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
