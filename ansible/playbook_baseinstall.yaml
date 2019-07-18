@@ -29,10 +29,16 @@
   gather_facts: yes
   become_user: root
   tasks:
+    - name: Ensure existence of client configuration directory
+      file:
+        path: /usr/local/vpnconnector 
+        state: directory
+        mode: '0755'
     - name: Copy connector script
       copy: 
        src: /usr/local/securitydevice/ansible/files/security_device/connector.py
-       dest: /usr/local/vpnconnector
+       dest: /usr/local/vpnconnector/connector.py
+       mode: '0755'
     - name: Install dhcp server
       apt: pkg=isc-dhcp-server state=latest 
 
