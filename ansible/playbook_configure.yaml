@@ -39,15 +39,15 @@
   tasks:
   - name: configure Automatic Private IP Addressing
     copy:
-      src: /usr/local/securitydevice/ansible/files/system/enp0s3 
-      dest:  /etc/network/interfaces.d/enp0s3 
+      src: /usr/local/securitydevice/ansible/files/system/eth0 
+      dest:  /etc/network/interfaces.d/eth0 
   - name: Bring down interface 
-    command: "ifdown enp0s3"
+    command: "ifdown eth0"
     args:
       chdir: "/"
     ignore_errors: yes
   - name: Bring down interface
-    command: "ifup enp0s3"
+    command: "ifup eth0"
     args:
       chdir: "/"
     ignore_errors: yes
@@ -153,31 +153,25 @@
   gather_facts: yes
   become_user: root
   tasks:
-  - name: Add ufw before content
+  - name: Copy servicefile for NFQ activation 
+    copy:
+      src: /usr/local/securitydevice/ansible/files/nfqiptable.service
+      dest: /etc/systemd/system/nfqiptable.service 
+    tags:
+      - nfqactivation
+  - name: Reload systemd after changing service file
+    shell: "systemctl daemon-reload"
+    args:
+      chdir: "/"
+      executable: /bin/bash
+    tags:
+      - nfqactivation
+  - name: Start NFQ activation service 
     become: true
-    blockinfile:
-      dest: /etc/ufw/before.rules
-      insertbefore: BOF
-      block: |
-        iptables -I FORWARD -j NFQUEUE   
-        COMMIT
-  - name: Customize ufw forwarding policy
-    become: true
-    lineinfile:
-      line: "DEFAULT_FORWARD_POLICY=\"ACCEPT\""
-      dest: "/etc/default/ufw"
-      regexp: "^DEFAULT_FORWARD_POLICY=\"DROP\""
-  - name: Open ufw ports for openvpn 
-    become: true
-    shell:  ufw allow 443/tcp
-  - name: Open ufw ports for ssh
-    become: true
-    shell:  ufw allow 22/tcp 
-  - name: Open ufw ports for http 
-    become: true
-    shell:  ufw allow 80/tcp
-  - name: Enable ufw
-    become: true
-    shell: ufw --force enable
-
-
+    systemd:
+      name: nfqiptable 
+      state: started
+      daemon_reload: yes
+      enabled: yes
+    tags:  
+      - nfqactivation
