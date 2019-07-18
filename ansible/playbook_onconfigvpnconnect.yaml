@@ -37,12 +37,12 @@
       src: /usr/local/securitydevice/ansible/template/isc-dhcp-server.j2
       dest: /etc/default/isc-dhcp-server 
   - name: Bring down interface 
-    command: "ifdown enp0s3"
+    command: "ifdown eth1"
     args:
       chdir: "/"
     ignore_errors: yes
   - name: Bring down interface
-    command: "ifup enp0s3"
+    command: "ifup eth1"
     args:
       chdir: "/"
     ignore_errors: yes
