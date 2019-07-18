@@ -21,3 +21,4 @@ status openvpn-status.log
 verb 2 
 explicit-exit-notify 0
 client-config-dir /etc/openvpn/ccd
+config /etc/openvpn/routingconfiguration
