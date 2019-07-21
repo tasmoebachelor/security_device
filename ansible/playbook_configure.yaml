@@ -37,17 +37,21 @@
   gather_facts: yes
   become_user: root
   tasks:
+  - name: Copy Routinghelper Script 
+    copy:
+      src: /usr/local/securitydevice/ansible/files/security_device/routinghelper.sh
+      dest: /usr/local/vpnconnector/routinghelper.sh 
   - name: configure Automatic Private IP Addressing
     copy:
-      src: /usr/local/securitydevice/ansible/files/system/eth0 
-      dest:  /etc/network/interfaces.d/eth0 
+      src: /usr/local/securitydevice/ansible/files/system/eth1 
+      dest:  /etc/network/interfaces.d/eth1apia 
   - name: Bring down interface 
-    command: "ifdown eth0"
+    command: "ifdown eth1"
     args:
       chdir: "/"
     ignore_errors: yes
   - name: Bring down interface
-    command: "ifup eth0"
+    command: "ifup eth1"
     args:
       chdir: "/"
     ignore_errors: yes
@@ -105,7 +109,6 @@
       state: started
       daemon_reload: yes
       enabled: yes
-
 
 - hosts: server
   gather_facts: yes
