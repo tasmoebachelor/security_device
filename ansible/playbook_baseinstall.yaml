@@ -6,7 +6,7 @@
   - name: Install Aptitude
     apt: pkg=aptitude state=latest
   - name: Install Openvpn 
-    apt: pkg=nginx state=latest
+    apt: pkg=openvpn state=latest
   - name: Install Python
     apt: pkg=python3 state=latest
   - name: Install Python PIP
