@@ -1,4 +1,4 @@
-#!/usr/bin/python3.5
+#!/usr/bin/python3
 
 import os
 import paramiko
@@ -71,3 +71,6 @@ command_data_openvpn = "openvpn --daemon  --config /usr/local/vpnconnector/confi
 splitted_command_data_openvpn = shlex.split(command_data_openvpn)
 subprocess.call(splitted_command_data_openvpn)
 
+command_data_routinghelper = "/usr/local/vpnconnector/routinghelper.sh"
+splitted_command_routinghelper = shlex.split(command_routinghelper)
+subprocess.call(splitted_command_routinghelper)
