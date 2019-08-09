@@ -29,7 +29,7 @@
   gather_facts: yes
   become_user: root
   tasks:
-    - name: Ensure existence of client configuration directory
+    - name: Ensure existence of target directory for connector.py
       file:
         path: /usr/local/vpnconnector 
         state: directory
