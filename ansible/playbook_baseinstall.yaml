@@ -24,7 +24,7 @@
       name: paramiko
       executable: /usr/bin/pip3
 
-
+# Anlegen des Ziel Directory für Connector.py und Installation DHCP-Server für Geräte hinter dem Client 
 - hosts: client_devices
   gather_facts: yes
   become_user: root
@@ -42,9 +42,10 @@
     - name: Install dhcp server
       apt: pkg=isc-dhcp-server state=latest 
 
+#Installation DNS-Server zur Namensvergabe an die Cients aus etc/hosts
 - hosts: management 
   gather_facts: yes
   become_user: root
   tasks:
-    - name: Install dhcpmasq 
+    - name: Install dnsmasq 
       apt: pkg=dnsmasq state=latest
