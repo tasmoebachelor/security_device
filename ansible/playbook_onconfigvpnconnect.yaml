@@ -41,7 +41,7 @@
     args:
       chdir: "/"
     ignore_errors: yes
-  - name: Bring down interface
+  - name: Bring up interface
     command: "ifup eth1"
     args:
       chdir: "/"
