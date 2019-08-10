@@ -28,7 +28,7 @@
     template:
       src: /usr/local/securitydevice/ansible/template/clientnetwork.j2
       dest: /etc/network/interfaces.d/clientnetworkip
-  - name: Configur DHCP-Server 
+  - name: Configure DHCP-Server 
     template:
       src: /usr/local/securitydevice/ansible/template/dhcpd.conf.j2
       dest: /etc/dhcp/dhcpd.conf
