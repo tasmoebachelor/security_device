@@ -24,11 +24,11 @@
     copy:
       src: /home/cda{{ client_id }}/datavpn.ovpn
       dest: /usr/local/vpnconnector/configfiles/datavpn.ovpn
-  - name: Start default gateway ip client network 
+  - name: Start ip client network 
     template:
       src: /usr/local/securitydevice/ansible/template/clientnetwork.j2
       dest: /etc/network/interfaces.d/clientnetworkip
-  - name: Start default gateway ip client network
+  - name: Configur DHCP-Server 
     template:
       src: /usr/local/securitydevice/ansible/template/dhcpd.conf.j2
       dest: /etc/dhcp/dhcpd.conf
