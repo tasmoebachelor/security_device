@@ -24,7 +24,7 @@
     copy:
       src: /home/cda{{ client_id }}/datavpn.ovpn
       dest: /usr/local/vpnconnector/configfiles/datavpn.ovpn
-  - name: Start ip client network 
+  - name: Configure ip of client network 
     template:
       src: /usr/local/securitydevice/ansible/template/clientnetwork.j2
       dest: /etc/network/interfaces.d/clientnetworkip
@@ -41,7 +41,7 @@
     args:
       chdir: "/"
     ignore_errors: yes
-  - name: Bring up interface
+  - name: Bring up interface and thus activation of client network ip configuration
     command: "ifup eth1"
     args:
       chdir: "/"
